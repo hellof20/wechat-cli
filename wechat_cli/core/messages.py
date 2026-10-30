@@ -194,13 +194,20 @@ def _format_app_message_text(content, local_type, is_group, chat_username, chat_
                             if title in f or f in title:
                                 return f"[文件] {title}\n  {os.path.join(file_dir, f)}"
         return f"[文件] {title}" if title else "[文件]"
-    if app_type == 5:
-        return f"[链接] {title}" if title else "[链接]"
     if app_type in (33, 36, 44):
         return f"[小程序] {title}" if title else "[小程序]"
-    if title:
-        return f"[链接/文件] {title}"
-    return "[链接/文件]"
+    # 4 = 视频分享（如 B站），5 = 网页链接；其余类型保持「链接/文件」
+    tag = "链接" if app_type in (4, 5) else "链接/文件"
+    if not title:
+        # 无标题卡片不暴露 URL（多为带签名参数的一次性下载链接）
+        return f"[{tag}]"
+    url = (appmsg.findtext('url') or '').strip()
+    appname = _collapse_text(root.findtext('.//appinfo/appname') or root.findtext('.//appname') or '')
+    if appname:
+        tag = f"{tag}·{appname}"
+    if url.startswith(("http://", "https://")):
+        return f"[{tag}] {title}\n  {url}"
+    return f"[{tag}] {title}"
 
 
 def _format_voip_message_text(content):
